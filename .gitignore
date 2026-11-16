@@ -1,0 +1,21 @@
+# 非小说内容，不入库
+xalatath-theme/
+START-HERE.md
+_HANDOFF.md
+内容草稿.md
+_长剧情读后档案.md
+_文风样本集.md
+
+# 系统垃圾
+.DS_Store
+**/.DS_Store
+*.tmp
+*~
+
+# 工具与杂项
+.workbuddy/
+dsh-sync/
+dsh-skill/
+images/
+desk*.png
+原稿存档/

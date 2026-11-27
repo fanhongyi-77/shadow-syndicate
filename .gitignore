@@ -45,3 +45,4 @@ CR-*.md
 
 # ---- 工程目录整体外迁（2026-11-27 分库：私有仓 fanhongyi-77/mcp-test）----
 /void-echo/
+VOID-ECHO-*.md

@@ -19,3 +19,29 @@ dsh-skill/
 images/
 desk*.png
 原稿存档/
+
+# ---- 工程产物与调查报告，不入库（2026-11-26 莉莉丝/CR-Web-01 隔离，交接单 §1 + 实测补漏） ----
+CommonRoom-*.md
+VOID_ECHO-*.md
+CR-Web-01-*.md
+.tmp-*
+persona-export/
+whale-persona*
+whale-preset-insert.yml
+*.log
+*.csv
+check_corrupt.py
+quarantine.py
+scan_archive.py
+archive_to_external.sh
+bf-live-watch.sh
+CR-X1-*.md
+给白龙娘-*.md
+CR-*.md
+她昨天说过的话/
+观星者号-承诺账.md
+给聊天会话的交接单.md
+工程技术交接单-*.md
+
+# ---- 工程目录整体外迁（2026-11-27 分库：私有仓 fanhongyi-77/mcp-test）----
+/void-echo/

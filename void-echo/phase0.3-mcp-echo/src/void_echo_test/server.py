@@ -22,6 +22,7 @@ from __future__ import annotations
 import base64
 import os
 import time
+import uuid
 from typing import Annotated, Any, Literal
 
 from mcp.server.mcpserver import MCPServer
@@ -138,6 +139,19 @@ def echo(
 )
 def frame(
     n: Annotated[int, Field(ge=1, le=MAX_FRAMES, description="Number of frames to return.")] = 1,
+    run: Annotated[
+        str,
+        Field(description="Optional caller-supplied run id, echoed into the grading log for correlation."),
+    ] = "",
+    as_text: Annotated[
+        bool,
+        Field(description=(
+            "v4 experiment: when true, return the PNG ONLY as a base64 string inside a "
+            "text block (no image content block at all). Clients that can execute code can "
+            "decode it and forward it into their own visual input. When false, return the "
+            "standard MCP image content block."
+        )),
+    ] = False,
     secret: Annotated[
         int,
         Field(
@@ -159,17 +173,42 @@ def frame(
     Returned as explicit content blocks (not a JSON-serialisable value) so the
     SDK cannot collapse them into a single structured text result.
     """
+    if not run:
+        run = uuid.uuid4().hex[:8]
     accent = "teal"
     slash = "backslash"
     if secret == -1:
-        secret, accent, slash = _pick_secret()
+        secret, accent, slash = _pick_secret(run)
+    if as_text:
+        # v4: image travels INSIDE a text block. No image content block is emitted,
+        # so any correct report can only come from the text path.
+        png = render_frame(0, secret, accent, slash)
+        b64 = base64.b64encode(png).decode("ascii")
+        return [
+            TextContent(
+                type="text",
+                text=(
+                    f"VOID_ECHO_B64_V1 run={run} sha256={_sha256(png)} bytes={len(png)} "
+                    f"size={WIDTH}x{HEIGHT} mime=image/png\n"
+                    "This is the whole image as canonical base64 inside a TEXT block; there is "
+                    "no image content block in this result. Decode the data URL below, then "
+                    "forward the decoded PNG into your visual input to look at it. "
+                    "Report the run id, and the three pixel-only signals (bar count, accent "
+                    "colour, slash direction). If you cannot obtain a viewable image, say so "
+                    "instead of guessing."
+                ),
+            ),
+            TextContent(type="text", text=f"data:image/png;base64,{b64}"),
+        ]
+
     out: list[TextContent | ImageContent] = [
         TextContent(
             type="text",
             text=(
-                f"VOID ECHO frame generator: {n} frame(s), {WIDTH}x{HEIGHT} px, image/png, "
-                "canonical base64. Each frame carries a countable signal at top-right that is "
-                "deliberately absent from this text."
+                f"VOID ECHO frame generator: run={run} | {n} frame(s), {WIDTH}x{HEIGHT} px, "
+                "image/png, canonical base64. The bar count, accent colour and slash direction "
+                "are deliberately absent from this text. Quote the run id back when reporting "
+                "what you saw."
             ),
         )
     ]
@@ -191,13 +230,15 @@ def frame(
     return out
 
 
-def _sha256(value: str) -> str:
+def _sha256(value: str | bytes) -> str:
+    """SHA-256 of text (utf-8) or raw bytes."""
     import hashlib
 
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+    data = value.encode("utf-8") if isinstance(value, str) else bytes(value)
+    return hashlib.sha256(data).hexdigest()
 
 
-def _pick_secret() -> tuple[int, str, str]:
+def _pick_secret(run: str) -> tuple[int, str, str]:
     """Choose a random count, colour and slash; record all three LOCALLY.
 
     These are the grading ground truth. They are appended to out/secrets.log on
@@ -215,7 +256,7 @@ def _pick_secret() -> tuple[int, str, str]:
         Path("out").mkdir(exist_ok=True)
         with Path("out/secrets.log").open("a", encoding="utf-8") as fh:
             fh.write(
-                f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')}\t"
+                f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')}\trun={run}\t"
                 f"secret={count}\tcolour={colour}\tslash={direction}\n"
             )
     except OSError:

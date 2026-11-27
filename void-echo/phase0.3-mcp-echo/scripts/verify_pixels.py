@@ -57,7 +57,16 @@ def read_signals(png):
             "slash": score((PX0, PY1), (PX1, PY0)),
             "horizontal": score((PX0, my), (PX1, my))}
     direction = max(cand, key=cand.get)
-    return runs, colour, direction, round(cand[direction], 2)
+    # 独立第二判据：起点圆点的纵向位置（上/中/下）唯一确定方向
+    ys, xs = [], []
+    for y in range(int(PY0)-3, int(PY1)+4):
+        for x in range(int(PX0)-2, int(PX0)+16):
+            if close(px(buf, w, x, y), (25, 25, 35), 40):
+                ys.append(y); xs.append(x)
+    dot_y = sum(ys)/len(ys) if ys else -1
+    by_dot = ("backslash" if dot_y < PY0 + (PY1-PY0)/3 else
+              "slash" if dot_y > PY1 - (PY1-PY0)/3 else "horizontal")
+    return runs, colour, direction, round(cand[direction], 2), by_dot
 
 
 if __name__ == "__main__":
@@ -67,7 +76,7 @@ if __name__ == "__main__":
         for colour in ACCENTS:
             for direction in ("backslash", "slash", "horizontal"):
                 got = read_signals(render_frame(0, count, colour, direction))
-                ok = got[0] == count and got[1] == colour and got[2] == direction
+                ok = got[0] == count and got[1] == colour and got[2] == direction and got[4] == direction
                 bad += 0 if ok else 1
                 if not ok:
                     print(f"   [BAD] {count}/{colour}/{direction} → {got}")

@@ -34,20 +34,24 @@ DARK = (25, 25, 35)
 PANEL_BG = (228, 228, 238)
 
 # Six clearly distinct accent colours
+# Six hues chosen to be far apart in BOTH hue and lightness, and deliberately
+# not close to the scene's red ellipse or blue rectangle.
 ACCENTS = {
-    "teal": (18, 168, 132),
-    "orange": (240, 150, 30),
-    "purple": (150, 60, 200),
-    "pink": (232, 92, 152),
-    "lime": (140, 200, 60),
-    "sky": (70, 160, 240),
+    "teal": (0, 168, 158),
+    "orange": (252, 138, 12),
+    "purple": (150, 58, 214),
+    "magenta": (236, 52, 186),
+    "yellow": (246, 214, 36),
+    "gray": (112, 116, 128),
 }
 
 SLASHES = ("backslash", "slash", "horizontal")  # "\"  "/"  "-"
 
 # Slash panel geometry (bottom-centre, clear of ellipse and rectangle)
-PX0, PY0, PX1, PY1 = 150, 178, 250, 228
-SLASH_T = 6.0
+PX0, PY0, PX1, PY1 = 150, 176, 290, 232   # larger panel, clear of the base shapes
+SLASH_T = 7.0
+DOT_R = 7.0   # filled marker at the line's START point: its vertical position
+              # alone identifies the direction (top / middle / bottom).
 
 
 def _chunk(tag: bytes, payload: bytes) -> bytes:
@@ -97,7 +101,12 @@ def _near_segment(px, py, ax, ay, bx, by, tol) -> bool:
 
 
 def _slash_endpoints(kind: str):
-    """Return ((ax, ay), (bx, by)) for the requested slash inside the panel."""
+    """Return ((ax, ay), (bx, by)) for the requested slash inside the panel.
+
+    The FIRST tuple element is the line's start point and receives a filled dot,
+    so the dot's vertical position identifies the direction unambiguously:
+    backslash -> top, horizontal -> middle, slash -> bottom.
+    """
     if kind == "backslash":      # top-left -> bottom-right  "\"
         return (PX0, PY0), (PX1, PY1)
     if kind == "slash":          # bottom-left -> top-right  "/"
@@ -155,6 +164,8 @@ def render_frame(
                         r, g, b = PANEL_BG
                         if _near_segment(fx, fy, sax, say, sbx, sby, tol):
                             r, g, b = DARK
+                        elif (fx - sax) ** 2 + (fy - say) ** 2 <= DOT_R * DOT_R:
+                            r, g, b = DARK  # start-point dot
 
                     # 3) top-LEFT dark bars = index + 1 (also in the text)
                     if 8.0 <= fy <= 34.0 and fx >= 12.0:
